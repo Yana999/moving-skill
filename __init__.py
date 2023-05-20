@@ -10,6 +10,7 @@ class Moving(MycroftSkill):
     def handle_moving(self, message):
         utt = message.data.get('utterance')
         utt = str(utt)
+        utt = utt[6:]
         logging.info("Полученный текст: " + utt)
         if (utt in ["вправо", "право", "направо"]):
             logging.info("Едем направо")
