@@ -28,23 +28,23 @@ class Moving(MycroftSkill):
         if (utt in ["вправо", "право", "направо"]):
             direct = "Едем направо"
             logging.info(direct)
-            self.client.emit(Message('speak', data={'direction': 3}))
+            self.client.emit(Message('moving', data={'direction': 3}))
         if (utt in ["влево", "лево", "налево"]):
             direct = "Едем налево"
             logging.info(direct)
-            self.client.emit(Message('speak', data={'direction': 2}))
+            self.client.emit(Message('moving', data={'direction': 2}))
         if (utt in ["вперед", "прямо"]):
             direct = "Едем прямо"
             logging.info()
-            self.client.emit(Message('speak', data={'direction': 1}))
+            self.client.emit(Message('moving', data={'direction': 1}))
         if (utt in ["назад"]):
             direct = "Едем назад"
             logging.info(direct)
-            self.client.emit(Message('speak', data={'direction': 4}))
+            self.client.emit(Message('moving', data={'direction': 4}))
         if (utt in ["стой", "стоять", "остановись", "стоп"]):
             direct = "Стоим"
             logging.info(direct)
-            self.client.emit(Message('speak', data={'utterance': 'Hello World'}))
+            self.client.emit(Message('moving', data={'direction': 5}))
         self.speak(direct)
 
         # if(direction != self.fail_message):
