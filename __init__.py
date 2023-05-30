@@ -1,74 +1,93 @@
 import logging
 from mycroft import MycroftSkill, intent_file_handler
-from mycroft_bus_client import MessageBusClient, Message
-import sys
-import rclpy
-from mycroft_bus_client import MessageBusClient, Message
+import websocket, rel
+from threading import Event, Thread
 
 
 
 class Moving(MycroftSkill):
     def __init__(self):
         MycroftSkill.__init__(self)
-        print('Setting up client to connect to a local mycroft instance')
-        self.client = MessageBusClient()
-        self.client.run_in_thread()
-        self.fail_message = 'не удалось определить направление движения'
-        # rclpy.init()
-        # node = MovingNode()
+        self.url = "ws://192.168.1.25:8181/"
+        self.localhost = "ws://localhost:8000/"
+        self.header = {'user-agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:82.0) Gecko/20100101 Firefox/82.0'}
+        websocket.enableTrace(True)
+        self.client = websocket.WebSocketApp(self.url,
+                                             on_message=Moving.on_message,
+                                             on_error=Moving.on_error,
+                                             on_close=Moving.on_close,
+                                             on_open=Moving.on_open,
+                                             header=self.header)
+        self.client.run_forever(dispatcher=rel, reconnect=25)
+        self.fail_message = 'fail'
+
+    def run_forever(self):
+        """Start the websocket handling."""
+        self.started_running = True
+        self.client.run_forever()
+
+    def run_in_thread(self):
+        """Launches the run_forever in a separate daemon thread."""
+        t = Thread(target=self.run_forever)
+        t.daemon = True
+        t.start()
+        return t
 
     @intent_file_handler('moving.intent')
     def handle_moving(self, message):
-        utt = message.data.get('utterance')
+        utt = message
         utt = str(utt)
         utt = utt[6:]
         logging.info("Полученный текст: " + utt)
-        print('Sending speak message...')
         direct = "Не могу распознать направление"
         if (utt in ["вправо", "право", "направо"]):
             direct = "Едем направо"
-            logging.info(direct)
-            self.client.emit(Message('moving', data={'direction': 3}))
+            self.client.send('{"op": "publish", "topic": "hello_ros2", "msg": {"data": "right"}}')
         if (utt in ["влево", "лево", "налево"]):
             direct = "Едем налево"
-            logging.info(direct)
-            self.client.emit(Message('moving', data={'direction': 2}))
+            self.client.send('{"op": "publish", "topic": "hello_ros2", "msg": {"data": "left"}}')
         if (utt in ["вперед", "прямо"]):
             direct = "Едем прямо"
-            logging.info()
-            self.client.emit(Message('moving', data={'direction': 1}))
+            self.client.send('{"op": "publish", "topic": "hello_ros2", "msg": {"data": "forward"}}')
         if (utt in ["назад"]):
             direct = "Едем назад"
-            logging.info(direct)
-            self.client.emit(Message('moving', data={'direction': 4}))
+            self.client.send('{"op": "publish", "topic": "hello_ros2", "msg": {"data": "backward"}}')
         if (utt in ["стой", "стоять", "остановись", "стоп"]):
             direct = "Стоим"
-            logging.info(direct)
-            self.client.emit(Message('moving', data={'direction': 5}))
+            self.client.send('{"op": "publish", "topic": "hello_ros2", "msg": {"data": "stop"}}')
+        logging.info(direct)
         self.speak(direct)
 
-        # if(direction != self.fail_message):
-        #     minimal_client = MovingNode()
-        #     response = minimal_client.send_request(direction)
-        #     minimal_client.get_logger().info(
-        #     'Result of sending movment direction: %d' % response.sum)
+    def on_message(ws, message):
+        try:
+            logging.info("Got msg: ", message)
+            pass
+        except:
+            logging.warning('error occured - ignorring')
+
+    def on_error(ws, error):
+        print("received error as {}".format(error))
+
+    def on_close(ws, *args):
+        logging.info("Connection with driving module is closed")
+
+    def on_open(ws):
+        ws.send('{"op": "advertise", "topic": "hello_ros2", "type": "std_msgs/String"}')
+        logging.info("Open connection with driving module")
+
 
 def create_skill():
     return Moving()
 
 
-# class MovingNode(Node):
-#
-#     def __init__(self):
-#         super().__init__("moving_skill_node")
-#         self.cli = self.create_client(AddTwoInts, 'send_direction')
-#         while not self.cli.wait_for_service(timeout_sec=1.0):
-#             self.get_logger().info('service not available, waiting again...')
-#         self.req = AddTwoInts.Request()
-#         self.get_logger().info("Moving node has been started")
-#
-#     def send_direction_command(self, direction):
-#         msg =
-#         self.future = self.cli.call_async(self.req)
-#         rclpy.spin_until_future_complete(self, self.future)
-#         return self.future.result()
+
+
+
+# if __name__ == '__main__':
+#     a = Moving()
+#     # utt = "робот налево"
+#     # a.handle_moving(utt)
+#     # utt = 'робот направо'
+#     # a.handle_moving(utt)
+#     utt = 'робот прямо'
+#     a.handle_moving(utt)
