@@ -1,3 +1,2 @@
 # для core - QA
-websocket-client==1.5.2
-rel==0.4.9
+requests==2.27.1
